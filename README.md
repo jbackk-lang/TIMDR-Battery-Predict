@@ -4,13 +4,36 @@ Predykcyjne utrzymanie ogniwa/pakietu baterii: fuzja 4 czujników
 (napięcie, prąd, temperatura, rezystancja wewnętrzna) w jeden sygnał
 "energii stanu" E(t), plus standardowy zestaw detektorów TIMDR (twist,
 trend, anomalie, rytm), model degradacji, prognoza czasu do awarii
-(TTF) i wynik zdrowia (health_score). Lokalne REST API (Flask) +
-dashboard bez zależności od CDN + `run.bat`.
+(TTF) i wynik zdrowia (health_score), plus dispatcher priorytetyzujący
+te wyniki w jedno zdarzenie (`timdr_battery_trigger.py`). Lokalne REST
+API (Flask) + dashboard bez zależności od CDN + `run.bat`.
+
+## 🚨 `timdr_battery_trigger.py` — jedno priorytetyzowane zdarzenie
+
+Dispatcher NIE liczy własnej statystyki - tylko woła już przetestowane
+`TIMDRBatteryFusion.twist()`/`anomalies()` i
+`TIMDRBatteryPredict.predict_failure()` i mapuje ich łączny wynik na
+jedno zdarzenie (typ + lokalizacja + komunikat), według priorytetu:
+**FAILURE_IMMINENT** (przewidywany TTF ≤ `alert_ttf_seconds`, domyślnie
+3600s) > **STRUCTURE** (`twist` — nagła zmiana E(t)) > **ANOMALY**
+(pojedyncza statystyczna anomalia w E(t)) > **NONE**. Ten sam wzorzec i
+te same, zakodowane na stałe progi Fusion (3.5/3.0) co w siostrzanym
+`TIMDR-Industrial-Predict/timdr_industrial_trigger.py`. Wpięty w
+`/api/analyze` (pole `"trigger"` w JSON) i w dashboardzie (karta
+"Trigger").
+
+```python
+from timdr_battery_trigger import BatteryTrigger
+
+result = BatteryTrigger(alert_ttf_seconds=3600.0).analyze(t, E, threshold=8.0)
+print(result.as_dict())
+```
 
 ## Status
 
 Kod ze zgłoszenia (`TIMDRBatteryFusion`, `TIMDRBatteryPredict`)
-uruchomiony i przetestowany (32/32 testów). **Zweryfikowano empirycznie
+uruchomiony i przetestowany (39/39 testów, w tym 7 dla
+`timdr_battery_trigger.py`). **Zweryfikowano empirycznie
 i naprawiono 4 błędy** — wszystkie identyczne co do mechanizmu z
 wcześniej znalezionymi i naprawionymi błędami w TIMDR-Industrial-Predict
 (kod ze zgłoszenia wygląda na skopiowany z wcześniejszej,
@@ -198,7 +221,10 @@ periods, r_score = fusion.rhythm(E)
 
 ttf, ttf_lin, ttf_exp = predict.predict_failure(t, E, threshold=8.0, window=60)
 health = predict.health_score(E, threshold=8.0, window=20)
+
+from timdr_battery_trigger import BatteryTrigger
+trigger_result = BatteryTrigger().analyze(t, E, threshold=8.0)
 ```
 
-Uruchomienie testów: `pytest -q` (32 testy: fusion, predict, scenariusze
-demo).
+Uruchomienie testów: `pytest -q` (39 testów: fusion, predict, scenariusze
+demo, trigger).

@@ -23,11 +23,18 @@ from flask import Flask, jsonify, request, send_from_directory
 from demo_scenarios import DEFAULT_THRESHOLDS, SCENARIOS, make_demo_data
 from timdr_battery_fusion import TIMDRBatteryFusion
 from timdr_battery_predict import TIMDRBatteryPredict
+from timdr_battery_trigger import BatteryTrigger
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
 fusion = TIMDRBatteryFusion()
 predict = TIMDRBatteryPredict()
+# Ta sama instancja fusion/predict co wyzej - BatteryTrigger nie
+# duplikuje stanu, tylko odpytuje je jeszcze raz z tym samym
+# threshold/window co reszta api_analyze() (deterministyczne funkcje,
+# wiec wynik jest identyczny z tw_idx/an_idx/ttf ponizej - trigger
+# tylko je priorytetyzuje i mapuje na jedno zdarzenie).
+trigger = BatteryTrigger(fusion=fusion, predictor=predict)
 
 REQUIRED_SENSORS = ["voltage", "current", "temperature", "resistance"]
 
@@ -108,6 +115,11 @@ def api_analyze():
 
         ttf, ttf_lin, ttf_exp = predict.predict_failure(t, E, threshold=threshold, window=window)
         health = predict.health_score(E, threshold=threshold, window=window)
+
+        try:
+            trigger_result = trigger.analyze(t, E, threshold=threshold, window=window).as_dict()
+        except Exception:  # noqa: BLE001 - trigger jest dodatkiem, nie moze wywalic calej analizy
+            trigger_result = None
     except Exception as exc:  # noqa: BLE001 - czytelny blad do dashboardu, nie goly 500
         return jsonify({"error": f"blad analizy: {exc}"}), 400
 
@@ -131,6 +143,7 @@ def api_analyze():
         "health_score": float(health),
         "threshold": threshold,
         "window": window,
+        "trigger": trigger_result,
     })
 
 
