@@ -146,6 +146,10 @@
     <div class="label">Wykryty rytm</div>
     <div class="value" style="font-size:18px;"><span id="valRhythm">—</span></div>
   </div>
+  <div class="card">
+    <div class="label">Trigger (priorytetyzowane zdarzenie)</div>
+    <div class="value" style="font-size:16px;"><span id="valTrigger">—</span></div>
+  </div>
 </div>
 
 <div class="grid2">
@@ -442,6 +446,19 @@ function renderResult(data){
   document.getElementById('valRhythm').textContent = data.rhythm_periods.length
     ? `okres ${data.rhythm_periods[0]} (moc ${fmt(data.rhythm_score, 2)})`
     : 'brak';
+
+  // Trigger: jedno priorytetyzowane zdarzenie z timdr_battery_trigger.py
+  // (FAILURE_IMMINENT > STRUCTURE > ANOMALY > NONE).
+  const trig = data.trigger;
+  const trigEl = document.getElementById('valTrigger');
+  if (!trig){
+    trigEl.textContent = '—';
+  } else if (!trig.triggered){
+    trigEl.textContent = 'brak zdarzenia';
+  } else {
+    trigEl.textContent = `${trig.type} @ idx ${trig.location}`;
+    trigEl.title = trig.message;
+  }
 
   const anomalyPoints = data.anomaly_idx.map(i => ({ i, y: data.E[i] }));
   const twistPoints = data.twist_idx.map(i => ({ i, y: data.E[i] }));
