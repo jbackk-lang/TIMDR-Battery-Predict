@@ -1,5 +1,9 @@
 # TIMDR-Battery-Predict
 
+<!-- TIMDR HUB LINKS -->
+> **Ekosystem TIMDR:** [Knowledge Hub — dokumentacja i wyszukiwarka](https://jbackk-lang.github.io/TIMDR-AI-Knowledge-Base/) · [Panel badawczy](https://jbackk-lang.github.io/) · [GIA-TIMDR — źródła](https://github.com/jbackk-lang/GIA-TIMDR) · [Research AI — lokalne wyszukiwanie semantyczne](https://github.com/jbackk-lang/TIMDR-AI-Knowledge-Base). Publiczna wyszukiwarka Huba jest tekstowa; semantyczna wymaga lokalnego uruchomienia.
+<!-- /TIMDR HUB LINKS -->
+
 Predykcyjne utrzymanie ogniwa/pakietu baterii: fuzja 4 czujników
 (napięcie, prąd, temperatura, rezystancja wewnętrzna) w jeden sygnał
 "energii stanu" E(t), plus standardowy zestaw detektorów TIMDR (twist,
